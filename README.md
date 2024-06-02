@@ -1,5 +1,9 @@
 # tonic-build-protobuf / tonic-codec-protobuf
 
+[![Crates.io](https://img.shields.io/crates/v/tonic-build-protobuf)](https://crates.io/crates/tonic-build-protobuf)
+[![Documentation](https://docs.rs/tonic-build-protobuf/badge.svg)](https://docs.rs/tonic-build-protobuf)
+[![LICENSE](https://img.shields.io/crates/l/tonic-build-protobuf)](LICENSE)
+
 Compiles proto files via [rust-protobuf](https://crates.io/crates/protobuf) and generates service stubs for use with tonic.
 
 ## Features
