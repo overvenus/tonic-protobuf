@@ -1,0 +1,24 @@
+[package]
+name = "tonic-codec-protobuf"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+authors = ["Neil Shen <overvenus@gmail.com>"]
+repository = "https://github.com/overvenus/tonic-codec-protobuf"
+description = "A tonic::Codec that implements `application/grpc+proto` via the rust-protobuf."
+documentation = "https://docs.rs/tonic-codec-protobuf"
+
+[features]
+default = ["protobuf-v3"]
+protobuf-v3 = ["dep:protobuf"]
+protobuf-v2 = ["dep:protobuf2"]
+
+[dependencies]
+protobuf2 = { package = "protobuf", version = "2", optional = true }
+protobuf = { version = "3", optional = true }
+tonic = "0.11"
+bytes = "1.0"
+
+[package.metadata.docs.rs]
+all-features = true
