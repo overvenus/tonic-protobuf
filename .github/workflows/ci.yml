@@ -27,7 +27,6 @@ jobs:
         with:
           tool: protoc@${{ env.PROTOC_VERSION }}
       - run: cargo fmt --check
-      - run: cargo install cargo-expand@1.0.86
       - run: cargo test --workspace --all-features
 
   build:
