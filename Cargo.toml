@@ -1,3 +1,3 @@
 [workspace]
 resolver = "2"
-members = ["tonic-codec-protobuf", "tonic-build-protobuf"]
+members = ["tonic-codec-protobuf", "tonic-build-protobuf", "examples"]

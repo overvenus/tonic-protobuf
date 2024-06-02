@@ -1,0 +1,29 @@
+syntax = "proto3";
+package debugpb;
+
+import "rustproto.proto";
+
+option (rustproto.lite_runtime_all) = true;
+option java_package = "org.tikv.kvproto";
+
+// Debug service for TiKV.
+service Debug {
+    // Read a value arbitrarily for a key.
+    rpc Get(GetRequest) returns (GetResponse) {}
+}
+
+enum DB {
+    INVALID = 0;
+    KV = 1;
+    RAFT = 2;
+}
+
+message GetRequest {
+    DB db = 1;
+    string cf = 2;
+    bytes key = 3;
+}
+
+message GetResponse {
+    bytes value = 1;
+}

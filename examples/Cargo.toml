@@ -1,0 +1,15 @@
+[package]
+name = "examples"
+version = "0.1.0"
+edition = "2021"
+authors = ["Neil Shen <overvenus@gmail.com>"]
+publish = false
+
+[dependencies]
+tonic = "0.11"
+protobuf = "3"
+tonic-codec-protobuf = { path = "../tonic-codec-protobuf" }
+
+[build-dependencies]
+tonic-build-protobuf = { path = "../tonic-build-protobuf" }
+protobuf-codegen = "3"

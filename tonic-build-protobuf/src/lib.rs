@@ -1,30 +1,4 @@
-//! `tonic-build-protobuf` compiles `proto` files via [`protobuf`](https://crates.io/crates/protobuf)
-//! and generates service stubs for use with `tonic`.
-//!
-//! # Example
-//!
-//! ```rust,no_run
-//! fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Project layout:
-//!     // .
-//!     // ├── Cargo.lock
-//!     // ├── Cargo.toml
-//!     // ├── include
-//!     // │   └── rustproto.proto
-//!     // ├── proto
-//!     // │   └── debugpb.proto
-//!     // └── src
-//!     //     └── mod.rs
-//!     tonic_build_protobuf::Builder::new()
-//!         .out_dir(format!(
-//!             "{}/protos",
-//!             std::env::var("OUT_DIR").expect("No OUT_DIR defined")
-//!         ))
-//!         .proto_path("crate")
-//!         .file_name(|pkg, svc| format!("{pkg}_{svc}_tonic"))
-//!         .compile(&["proto/debugpb.proto"], &["proto", "include"]);
-//! }
-//! ```
+#![doc = include_str!("../README.md")]
 
 use core::fmt;
 use std::{
@@ -337,10 +311,9 @@ impl Builder {
             let mut output = String::new();
             generator.finalize(&mut output);
 
-            let out_file = out_dir.join(&format!(
-                "{}.rs",
-                (file_name.0)(&service.package, &service.name)
-            ));
+            let file_name = (file_name.0)(&service.package, &service.name);
+            let mod_name = rust_mod_name_convention(&file_name);
+            let out_file = out_dir.join(&format!("{}.rs", mod_name));
             fs::write(out_file, output).unwrap();
         }
     }
@@ -392,6 +365,10 @@ impl Builder {
         }
         self.compile_svc(&services);
     }
+}
+
+fn rust_mod_name_convention(name: &str) -> String {
+    name.to_snake_case()
 }
 
 fn rust_method_name_convention(name: &str) -> String {

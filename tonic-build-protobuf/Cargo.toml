@@ -5,15 +5,17 @@ edition = "2021"
 license = "MIT"
 readme = "README.md"
 authors = ["Neil Shen <overvenus@gmail.com>"]
-repository = "https://github.com/overvenus/tonic-codec-protobuf"
+repository = "https://github.com/overvenus/tonic-protobuf"
 description = "Codegen module of `tonic` gRPC implementation with rust-protobuf."
 documentation = "https://docs.rs/tonic-build-protobuf"
+categories = ["network-programming"]
+homepage = "https://github.com/overvenus/tonic-protobuf"
+keywords = ["tonic", "codec", "codegen", "protobuf"]
 
 [dependencies]
 protobuf = "3"
 protobuf-parse = "3"
 tonic-build = "0.11"
-bytes = "1.0"
 prettyplease = { version = "0.2" }
 proc-macro2 = "1.0"
 quote = "1.0"
