@@ -19,8 +19,6 @@ struct Service {
     name: String,
     /// The package name as it appears in the .proto file.
     package: String,
-    /// The service comments.
-    comments: Vec<String>,
     /// The service methods.
     methods: Vec<Method>,
 }
@@ -47,7 +45,7 @@ impl tonic_build::Service for Service {
     }
 
     fn comment(&self) -> &[Self::Comment] {
-        &self.comments
+        &[]
     }
 }
 
@@ -58,8 +56,6 @@ struct Method {
     name: String,
     /// The name of the method as should be used when constructing a route
     route_name: String,
-    /// The method comments.
-    comments: Vec<String>,
     /// The input Rust type.
     input_type: String,
     /// The output Rust type.
@@ -96,7 +92,7 @@ impl tonic_build::Method for Method {
     }
 
     fn comment(&self) -> &[Self::Comment] {
-        &self.comments
+        &[]
     }
 
     fn request_response_name(
@@ -181,6 +177,7 @@ impl ServiceGenerator {
     }
 }
 
+#[allow(clippy::type_complexity)]
 struct FileNameFn(Box<dyn Fn(&str, &str) -> String>);
 
 impl fmt::Debug for FileNameFn {
@@ -292,6 +289,32 @@ impl Builder {
     }
 
     /// Performs code generation for the provided services.
+    ///
+    /// Generated services will be output into the directory specified by
+    /// `out_dir` with files named specified by [`Builder::file_name`].
+    pub fn compile(self, protos: &[impl AsRef<Path>], includes: &[impl AsRef<Path>]) {
+        let fds = self.build_file_descriptor_set(protos, includes);
+        let mut services = vec![];
+        for fd in fds.file {
+            services.extend(self.build_services(fd));
+        }
+        self.compile_svc(&services);
+    }
+
+    fn build_file_descriptor_set(
+        &self,
+        protos: &[impl AsRef<Path>],
+        includes: &[impl AsRef<Path>],
+    ) -> descriptor::FileDescriptorSet {
+        protobuf_parse::Parser::new()
+            .protoc()
+            .inputs(protos)
+            .includes(includes)
+            .file_descriptor_set()
+            .expect("protoc failed")
+    }
+
+    /// Performs code generation for the provided services.
     fn compile_svc(mut self, services: &[Service]) {
         let out_dir = if let Some(out_dir) = self.out_dir.as_ref() {
             out_dir.clone()
@@ -324,46 +347,24 @@ impl Builder {
 
         let mut services = vec![];
         for svc in &fd.service {
-            let build_method = |m: &descriptor::MethodDescriptorProto| {
-                let mut method = Method::default();
-                method.name = rust_method_name_convention(m.name());
-                method.route_name = m.name().to_owned();
-                method.input_type = protobuf_path_to_rust_path(m.input_type());
-                method.output_type = protobuf_path_to_rust_path(m.output_type());
-                method.codec_path = self.codec_path.to_owned();
-                method
+            let build_method = |m: &descriptor::MethodDescriptorProto| Method {
+                name: rust_method_name_convention(m.name()),
+                route_name: m.name().to_owned(),
+                input_type: protobuf_path_to_rust_path(m.input_type()),
+                output_type: protobuf_path_to_rust_path(m.output_type()),
+                codec_path: self.codec_path.to_owned(),
+                client_streaming: m.client_streaming(),
+                server_streaming: m.server_streaming(),
             };
-            let build_service = |svc: &descriptor::ServiceDescriptorProto| {
-                let mut service = Service::default();
-                service.name = svc.name().to_owned();
-                service.package = package_name.to_owned();
-                for method in &svc.method {
-                    service.methods.push(build_method(method));
-                }
-                service
+            let build_service = |svc: &descriptor::ServiceDescriptorProto| Service {
+                name: svc.name().to_owned(),
+                package: package_name.to_owned(),
+                methods: svc.method.iter().map(build_method).collect(),
             };
             services.push(build_service(svc));
         }
 
         services
-    }
-
-    /// Performs code generation for the provided services.
-    ///
-    /// Generated services will be output into the directory specified by
-    /// `out_dir` with files named specified by [`Builder::file_name`].
-    pub fn compile(self, protos: &[impl AsRef<Path>], includes: &[impl AsRef<Path>]) {
-        let mut parser = protobuf_parse::Parser::new();
-        let fds = parser
-            .inputs(protos)
-            .includes(includes)
-            .file_descriptor_set()
-            .expect("protoc failed");
-        let mut services = vec![];
-        for fd in fds.file {
-            services.extend(self.build_services(fd));
-        }
-        self.compile_svc(&services);
     }
 }
 
@@ -405,4 +406,52 @@ fn protobuf_path_to_rust_path(path: &str) -> String {
     rust_path.push_str("::");
     rust_path.push_str(&rust_struct_name_convention(last_item.unwrap()));
     rust_path
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_streaming_rpc() {
+        let proto_content = r#"
+            syntax = "proto3";
+            package testing;
+            service Streaming {
+                rpc GetUnary(GetRequest) returns (GetResponse) {}
+                rpc GetClientStreaming(stream GetRequest) returns (GetResponse) {}
+                rpc GetServerStreaming(GetRequest) returns (stream GetResponse) {}
+                rpc GetBidirectionalStreaming(stream GetRequest) returns (stream GetResponse) {}
+            }
+            message GetRequest {}
+            message GetResponse {}
+        "#;
+
+        let tmp_dir = tempfile::TempDir::new().unwrap();
+        let proto_file_path = tmp_dir.path().join("test_streaming_rpc.proto");
+        std::fs::write(&proto_file_path, proto_content).unwrap();
+
+        let fds = crate::Builder::new()
+            .out_dir(tmp_dir.path())
+            .build_file_descriptor_set(&[proto_file_path], &[tmp_dir.path()]);
+        assert_eq!(fds.file[0].service.len(), 1);
+        assert_eq!(fds.file[0].service[0].method.len(), 4);
+
+        let assert = |rpc: &str, client_streaming, server_streaming| {
+            let method = fds.file[0].service[0]
+                .method
+                .iter()
+                .find(|m| m.name() == rpc)
+                .unwrap();
+            assert_eq!(method.client_streaming(), client_streaming, "{fds}");
+            assert_eq!(method.server_streaming(), server_streaming, "{fds}");
+        };
+
+        // Unary
+        assert("GetUnary", false, false);
+        // Client streaming
+        assert("GetClientStreaming", true, false);
+        // Server streaming
+        assert("GetServerStreaming", false, true);
+        // Bidirectional Streaming
+        assert("GetBidirectionalStreaming", true, true);
+    }
 }

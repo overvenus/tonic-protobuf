@@ -10,6 +10,11 @@ option java_package = "org.tikv.kvproto";
 service Debug {
     // Read a value arbitrarily for a key.
     rpc Get(GetRequest) returns (GetResponse) {}
+
+    // Streaming RPCs.
+    rpc GetClientStreaming(stream GetRequest) returns (GetResponse) {}
+    rpc GetServerStreaming(GetRequest) returns (stream GetResponse) {}
+    rpc GetBidirectionalStreaming(stream GetRequest) returns (stream GetResponse) {}
 }
 
 enum DB {

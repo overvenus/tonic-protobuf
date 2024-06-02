@@ -1,7 +1,7 @@
 fn main() {
     // Generate protobuf structs.
     protobuf_codegen::Codegen::new()
-        .includes(&["include", "proto"])
+        .includes(["include", "proto"])
         .input("proto/debugpb.proto")
         .cargo_out_dir("protos")
         .run()

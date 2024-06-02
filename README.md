@@ -20,7 +20,7 @@ tonic-build-protobuf = "<tonic-build-protobuf-version>"
 
 In `build.rs`:
 
-```rust
+```rust,ignore
 fn main() {
     // Project layout:
     // .
@@ -46,7 +46,7 @@ fn main() {
 
 Then you can reference the generated Rust like this this in your code:
 
-```rust
+```rust,ignore
 mod generated {
     include!(concat!(env!("OUT_DIR"), "debugpb_debug_tonic.rs"));
 }

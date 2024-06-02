@@ -22,5 +22,8 @@ quote = "1.0"
 syn = "2.0"
 heck = "0.5"
 
+[dev-dependencies]
+tempfile = "3.0"
+
 [package.metadata.docs.rs]
 all-features = true
